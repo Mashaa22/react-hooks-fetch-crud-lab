@@ -1,15 +1,87 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminNavBar from "./AdminNavBar";
 import QuestionForm from "./QuestionForm";
 import QuestionList from "./QuestionList";
 
 function App() {
-  const [page, setPage] = useState("List");
+  const [page, setPage] = useState("");
+  
+  const[data, setData] = useState([
+      {
+        "id": 0,
+        "prompt": "prompt question",
+        "answers": [
+          "index",
+          "index",
+          "index",
+          "index"
+        ],
+        "correctIndex": 0
+      }
+  ]);
+
+  useEffect(() => {
+    fetch("http://localhost:4000/questions")
+      .then(response => response.json())
+     .then(resData =>setData(resData))
+  }, []);
+
+  function addQuestion(Question){
+    const config = {
+      method: "POST",
+      headers: {
+        "Content-type":  "application/json",
+      },
+      body: JSON.stringify(Question)
+    }
+
+    fetch("http://localhost:4000/questions",config)
+      .then(response => response.json())
+      .then(Question =>{
+        const Questions =[...data, Question];
+        setData(Questions);
+      })
+  }
+
+  function deleteQuestion(questId){
+    const config = {
+      method: "DELETE"
+    };
+    fetch(`http://localhost:4000/questions/${questId}`, config)
+    .then(response => response.json())
+    .then(()=>{
+        const newList = data.filter(filData=>filData.id!==questId);
+        setData(newList);
+    })
+  }
+
+  function updateQuestion(questId, updQuestion){
+    console.log('UPDATE '+ updQuestion + ' ' + questId)
+   
+
+    fetch(`http://localhost:4000/questions/${questId}`,  {
+          method: "PATCH",
+          headers: {
+            "Content-type":  "application/json",
+          },
+          body: {"correctIndex":updQuestion},
+    })
+      .then(response => response.json())
+      .then((updQuestion) =>{
+          const updQuestions = data.map((dat)=>{
+          
+                if(dat.id === questId) return updQuestion;
+                return data;
+          })
+        
+          setData(updQuestions);
+      })
+  }
 
   return (
     <main>
       <AdminNavBar onChangePage={setPage} />
-      {page === "Form" ? <QuestionForm /> : <QuestionList />}
+      {page === "Form" ? <QuestionForm addQuestion={addQuestion}/> : <QuestionList mydata={data} delQuestion={deleteQuestion} updatedQuestion={updateQuestion}/>}
     </main>
   );
 }
